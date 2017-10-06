@@ -1,6 +1,6 @@
 import numpy as np
 import os
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import pdb
 import h5py
 import json
@@ -147,16 +147,16 @@ def show_predictions(data_path):
     plt.imshow(prediction[1,0, :,:], alpha=0.5)
     plt.show()
 
-def test_data_provider():
+def test_data_provider(data_path):
     squares = SquareDataProvider()
     #squares.generate_dataset("./square_data", 10, 268, 268, 50)
-    raw, gt_affs, loss_weights = squares.get_batch("./square_data/data.hdf5", 2)
+    raw, gt_affs, loss_weights = squares.get_batch(data_path, 0, "train")
     
-    #plt.imshow(raw[0,0, :,:])
-    #plt.imshow(gt_affs[0,0,:,:], alpha=0.5) # x affinities
+    plt.imshow(raw[0,0, :,:])
+    plt.imshow(gt_affs[0,0,:,:], alpha=0.5) # x affinities
     #plt.imshow(gt_affs[1,0,:,:], alpha=0.5) # y affinities
-    plt.imshow(loss_weights[0,0,:,:], alpha=0.5)
-    plt.imshow(loss_weights[1,0,:,:], alpha=0.5)
+    #plt.imshow(loss_weights[0,0,:,:], alpha=0.5)
+    #plt.imshow(loss_weights[1,0,:,:], alpha=0.5)
     plt.show()
 
 def gen_training_data():
@@ -165,6 +165,7 @@ def gen_training_data():
   
         
 if __name__ == "__main__":
-    show_predictions("/media/nilsec/d0/bunet/square_data/data.hdf5")
+    #show_predictions("/media/nilsec/d0/bunet/square_data/data.hdf5")
+    test_data_provider("/media/nilsec/d0/bunet/square_data_noisy/data.hdf5")
  
  
