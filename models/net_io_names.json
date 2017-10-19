@@ -1,0 +1,1 @@
+{"raw": "Placeholder:0", "loss_weights": "Placeholder_2:0", "optimizer": "Adam", "loss": "truediv:0", "sigma": "strided_slice_3:0", "affs": "Reshape_1:0", "logits_with_noise": "add_noise:0", "logits": "mc_dropout_18/Identity:0", "gt_affs": "Placeholder_1:0"}
