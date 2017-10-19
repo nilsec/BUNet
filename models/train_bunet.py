@@ -396,8 +396,8 @@ if __name__ == "__main__":
     data_path = "/media/nilsec/d0/bunet/square_data_noisy/data.hdf5"
     data_provider = SquareDataProvider()
     snapshot_save_path = data_path.replace("data.hdf5", "snaps.hdf5")
-    snapshot_id = 8
-    run = 8
+    snapshot_id = 9
+    run = 9
     log_dir = "./bunet_logs/run_%s" % run
     kernel_prior = tf.truncated_normal_initializer(mean=0.01, 
                                                    stddev=.01,
@@ -405,8 +405,8 @@ if __name__ == "__main__":
                                                    dtype=tf.float32)
     kernel_prior=None
     learning_rate = 0.0005
-    beta1 = 0.8
-    beta2 = 0.98
+    beta1 = 0.7
+    beta2 = 0.7
     epsilon = 1e-8
 
     if not os.path.exists(log_dir):
