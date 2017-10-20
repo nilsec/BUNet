@@ -5,13 +5,13 @@ import json
 
 def make(x_dim=268, 
          y_dim=268, 
-         z_dim=1,
-         mc_samples=50, 
+         z_dim=21,
+         mc_samples=50,
          learning_rate=0.1e-4,
          beta1=0.95,
          beta2=0.999,
          epsilon=1e-8,
-         num_fmaps=12, 
+         num_fmaps=6,
          fmap_inc_factor=2, 
          downsample_factors=([1,3,3],[1,3,3],[1,3,3]), 
          drop_rate=0.05,
@@ -40,14 +40,14 @@ def make(x_dim=268,
 
     f_out_shape_batched = f_out_batched.get_shape().as_list()
     f_out_shape = f_out_shape_batched[1:] # strip batch dim
-    f_out_shape[0] = 2 # Set f_maps to output feature maps (2 in case of x,y only) 
+    f_out_shape[0] = 3 # Set f_maps to output feature maps (2 in case of x,y only) 
 
-    affs = tf.reshape(tf.sigmoid(logits[:,0:2,:,:,:]), f_out_shape)
+    affs = tf.reshape(tf.sigmoid(logits[:,0:3,:,:,:]), f_out_shape)
 
     gt_affs = tf.placeholder(tf.float32, shape=f_out_shape)
     loss_weights = tf.placeholder(tf.float32, shape=f_out_shape)
 
-    sigma = logits[:,2:4,:,:,:]
+    sigma = logits[:,3:6,:,:,:]
 
     loss = stochastic_loss_layer(logits_with_noise,
                                  gt_affs,
