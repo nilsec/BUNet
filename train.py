@@ -35,7 +35,7 @@ def train_until(max_iteration):
     request.add(VolumeTypes.RAW, input_size, voxel_size=(40,4,4))
     request.add(VolumeTypes.GT_LABELS, output_size, voxel_size=(40,4,4))
     request.add(VolumeTypes.GT_MASK, output_size, voxel_size=(40,4,4))
-    request.add(VolumeTypes.GT_SCALE, output_size)
+    request.add(VolumeTypes.GT_SCALE, output_size, voxel_size=(40,4,4))
     request.add(VolumeTypes.GT_AFFINITIES, output_size, voxel_size=(40,4,4))
     
     snapshot_request = BatchRequest({
