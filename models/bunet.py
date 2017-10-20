@@ -244,7 +244,7 @@ def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior):
 
     logits = conv_drop_pass(f_out,
                             kernel_size=1,
-                            num_fmaps=4, 
+                            num_fmaps=6, 
                             num_repetitions=1,
                             drop_rate=drop_rate,
                             kernel_prior=kernel_prior,
@@ -256,8 +256,8 @@ def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior):
 
 def gaussian_noise_layer(logits, n_samples):
     print(logits.get_shape().as_list())
-    pred = logits[:,0:2,:,:,:]
-    sigma = logits[:,2:4,:,:,:]
+    pred = logits[:,0:3,:,:,:]
+    sigma = logits[:,3:6,:,:,:]
     
     shape_pred = pred.get_shape().as_list()
 
