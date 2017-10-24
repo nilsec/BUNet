@@ -26,7 +26,7 @@ def train_until(max_iteration):
     register_volume_type('GT_AFFINITIES')
     register_volume_type('PREDICTED_AFFS')
     register_volume_type('LOSS_GRADIENT')
-    register_volume_type('SIGMA_LOGITS_ALE')
+    register_volume_type('SIGMA')
 
     input_size = Coordinate((21,268,268))*(40,4,4)
     output_size = Coordinate((21,56,56))*(40,4,4)
@@ -44,6 +44,7 @@ def train_until(max_iteration):
 #    snapshot_request.add(VolumeTypes.LOSS_GRADIENT, output_size, voxel_size=(40,4,4))    
     snapshot_request.add(VolumeTypes.GT_LABELS, output_size, voxel_size=(40,4,4))
     snapshot_request.add(VolumeTypes.GT_AFFINITIES, output_size, voxel_size=(40,4,4))
+    snapshot_request.add(VolumeTypes.SIGMA, output_size, voxel_size=(40,4,4))
 
     data_sources = tuple(
         Hdf5Source(
@@ -106,7 +107,8 @@ def train_until(max_iteration):
                 net_io_names['loss_weights']: VolumeTypes.GT_SCALE
             },
             outputs={
-                net_io_names['affs']: VolumeTypes.PREDICTED_AFFS
+                net_io_names['affs']: VolumeTypes.PREDICTED_AFFS,
+                net_io_names['sigma']: VolumeTypes.SIGMA
             },
             gradients={
                 net_io_names['affs']: VolumeTypes.LOSS_GRADIENT
@@ -117,9 +119,10 @@ def train_until(max_iteration):
                 VolumeTypes.GT_LABELS: 'volumes/labels/neuron_ids',
                 VolumeTypes.GT_AFFINITIES: 'volumes/labels/affinities',
                 VolumeTypes.PREDICTED_AFFS: 'volumes/labels/pred_affinities',
+                VolumeTypes.SIGMA: 'volumes/labels/sigma'
             },
             every=100,
-            output_filename='run_1/batch_{iteration}.hdf',
+            output_filename='/media/nilsec/Backup/snapshots/run_1/batch_{iteration}.hdf',
             additional_request=snapshot_request)
     )
 
