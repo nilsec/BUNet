@@ -6,7 +6,7 @@ import json
 import numpy as np
 
 data_dir = '/media/nilsec/Backup/cremi/20170312_mala_v2'
-sample = 'sample_A.augmented.0'
+sample = 'sample_C.augmented.0'
 
 def predict(checkpoint_file, net_io_file, output_dir):
     
@@ -30,14 +30,13 @@ def predict(checkpoint_file, net_io_file, output_dir):
     source = (Hdf5Source(os.path.join(data_dir, sample + ".hdf"),
                         datasets={VolumeTypes.RAW: 'volumes/raw'},
                         volume_specs = {VolumeTypes.RAW: VolumeSpec(voxel_size=(40,4,4))}) +
-              Normalize() + 
-              Pad({VolumeTypes.RAW: (4000, 400, 400)}))
+              Normalize())
+              #Pad({VolumeTypes.RAW: (4000, 400, 400)}))
 
     with build(source):
         raw_spec = source.spec[VolumeTypes.RAW]
 
     pipeline = (source + 
-                IntensityScaleShift(2, -1) + 
                 ZeroOutConstSections() + 
                 Predict(checkpoint_file,
                         inputs = {net_io_names['raw']: VolumeTypes.RAW,},
@@ -54,8 +53,8 @@ def predict(checkpoint_file, net_io_file, output_dir):
                 PrintProfilingStats() + 
                 Scan(chunk_request) + 
                 Snapshot({VolumeTypes.RAW: 'volumes/raw',
-                          VolumeTypes.PRED_AFFINITIES: 'volumes/predicted_affs',
-                          VolumeTypes.SIGMA: 'volumes/sigma'},
+                          VolumeTypes.PRED_AFFINITIES: 'volumes/labels/pred_affinities',
+                          VolumeTypes.SIGMA: 'volumes/labels/sigma'},
                           dataset_dtypes={VolumeTypes.PRED_AFFINITIES: np.float32,
                                           VolumeTypes.SIGMA: np.float32,},
                           every=1,
@@ -66,7 +65,7 @@ def predict(checkpoint_file, net_io_file, output_dir):
     with build(pipeline):
         raw_spec = source.spec[VolumeTypes.RAW].copy()
         aff_spec = raw_spec.copy()
-        aff_spec.roi = raw_spec.roi.grow(-context, -context)
+        #aff_spec.roi = raw_spec.roi.grow(-context, -context)
         
         whole_request = BatchRequest({VolumeTypes.RAW: raw_spec,
                                       VolumeTypes.PRED_AFFINITIES: aff_spec,
@@ -75,7 +74,13 @@ def predict(checkpoint_file, net_io_file, output_dir):
         pipeline.request_batch(whole_request)
 
 if __name__ == "__main__":
-    checkpoint_file = sys.argv[1]
-    net_io_file = sys.argv[2]
-    output_dir = sys.argv[3]
-    predict(checkpoint_file, net_io_file, output_dir)
+    #checkpoint_file = sys.argv[1]
+    #net_io_file = sys.argv[2]
+    #output_dir = sys.argv[3]
+    checkpoint_file = "./models/bunet_checkpoint_700000"
+    net_io_file = "./models/net_io_names.json"
+    for n in range(30):
+        output_dir = "/media/nilsec/Backup/predictions_mc_2/700000_{}".format(n)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        predict(checkpoint_file, net_io_file, output_dir)
