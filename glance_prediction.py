@@ -64,5 +64,5 @@ def view(path,
    
 
 if __name__ == "__main__":
-    view("/media/nilsec/Backup/predictions_mc_2/sample_A/sample_A.augmented.0.hdf", pred_aff=True, sigma_scaled=True)
+    view("/media/nilsec/m3/predictions_mc_3/700000_0/sample_A.augmented.0.hdf", pred_aff=True, sigma_scaled=True)
 
