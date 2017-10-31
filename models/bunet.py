@@ -1,5 +1,6 @@
 import tensorflow as tf
-import tf_custom 
+#import tf_custom 
+from layers import mc_dropout
 import os
 import numpy as np
 
@@ -48,7 +49,7 @@ def conv_drop_pass(fmaps_in,
             kernel_initializer=kernel_prior,
             name=name + '_%i'%i)
         
-        fmaps = tf_custom.mc_dropout(
+        fmaps = mc_dropout(
             inputs=fmaps,
             rate=drop_rate)
 
@@ -81,7 +82,7 @@ def upsample(fmaps_in, factors, num_fmaps, drop_rate, kernel_prior, activation='
         kernel_initializer=kernel_prior,
         name=name)
 
-    fmaps = tf_custom.layers.mc_dropout(
+    fmaps = mc_dropout(
         inputs=fmaps,
         rate=drop_rate)
 
@@ -168,7 +169,7 @@ def bunet(fmaps_in,
     # convolve
     f_left = conv_drop_pass(
         fmaps_in,
-        kernel_size=[1,3,3], # NOTE: used to be 3, check when going back to 3D.
+        kernel_size=3,
         num_fmaps=num_fmaps,
         num_repetitions=2,
         drop_rate=drop_rate,
@@ -227,7 +228,7 @@ def bunet(fmaps_in,
     # convolve
     f_out = conv_drop_pass(
         f_right,
-        kernel_size=[1,3,3],
+        kernel_size=3,
         num_fmaps=num_fmaps,
         num_repetitions=2,
         drop_rate=drop_rate,
