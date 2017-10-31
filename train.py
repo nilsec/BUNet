@@ -1,17 +1,35 @@
 import sys
+import numpy as np
 from gunpowder import *
 from gunpowder.tensorflow import *
 import os
 import math
 import json
 
-data_dir = '/media/nilsec/Backup/cremi/20170312_mala_v2'
-samples = [
-    'sample_A.augmented.0',
-    'sample_B.augmented.0',
-    'sample_C.augmented.0'
-]
-samples = ['sample_C.augmented.0']
+data_dir = '/groups/saalfeld/home/funkej/workspace/projects/caffe/run/cremi_gunpowder/01_data'
+samples = ['sample_A_padded_20160501.aligned.filled.cropped',
+	   'sample_B_padded_20160501.aligned.filled.cropped',
+	   'sample_C_padded_20160501.aligned.filled.cropped.0:90'
+	  ]
+
+affinity_neighborhood = np.array([
+
+    [-1, 0, 0],
+    [0, -1, 0],
+    [0, 0, -1],
+
+    [-2, 0, 0],
+    [0, -3, 0],
+    [0, 0, -3],
+
+    [-3, 0, 0],
+    [0, -9, 0],
+    [0, 0, -9],
+
+    [-4, 0, 0],
+    [0, -27, 0],
+    [0, 0, -27]
+])
 
 def train_until(max_iteration):
 
@@ -24,12 +42,13 @@ def train_until(max_iteration):
     register_volume_type('GT_MASK')
     register_volume_type('GT_SCALE')
     register_volume_type('GT_AFFINITIES')
+    register_volume_type('GT_AFFINITIES_MASK')
     register_volume_type('PREDICTED_AFFS')
     register_volume_type('LOSS_GRADIENT')
     register_volume_type('SIGMA')
 
-    input_size = Coordinate((21,268,268))*(40,4,4)
-    output_size = Coordinate((21,56,56))*(40,4,4)
+    input_size = Coordinate((84,268,268))*(40,4,4)
+    output_size = Coordinate((56,56,56))*(40,4,4)
 
     request = BatchRequest()
     request.add(VolumeTypes.RAW, input_size, voxel_size=(40,4,4))
@@ -37,11 +56,12 @@ def train_until(max_iteration):
     request.add(VolumeTypes.GT_MASK, output_size, voxel_size=(40,4,4))
     request.add(VolumeTypes.GT_SCALE, output_size, voxel_size=(40,4,4))
     request.add(VolumeTypes.GT_AFFINITIES, output_size, voxel_size=(40,4,4))
+    request.add(VolumeTypes.GT_AFFINITIES_SCALE, output_size, voxel_size=(40,4,4))
 
     snapshot_request = BatchRequest()
     snapshot_request.add(VolumeTypes.RAW, input_size, voxel_size=(40,4,4))
     snapshot_request.add(VolumeTypes.PREDICTED_AFFS, output_size, voxel_size=(40,4,4))
-#    snapshot_request.add(VolumeTypes.LOSS_GRADIENT, output_size, voxel_size=(40,4,4))    
+    snapshot_request.add(VolumeTypes.LOSS_GRADIENT, output_size, voxel_size=(40,4,4))    
     snapshot_request.add(VolumeTypes.GT_LABELS, output_size, voxel_size=(40,4,4))
     snapshot_request.add(VolumeTypes.GT_AFFINITIES, output_size, voxel_size=(40,4,4))
     snapshot_request.add(VolumeTypes.SIGMA, output_size, voxel_size=(40,4,4))
@@ -56,7 +76,7 @@ def train_until(max_iteration):
             },
             volume_specs = {VolumeTypes.RAW: VolumeSpec(voxel_size=(40,4,4)),
                             VolumeTypes.GT_LABELS: VolumeSpec(voxel_size=(40,4,4)),
-                            VolumeTypes.GT_MASK: VolumeSpec(voxel_size=(40,4,4))}
+                            VolumeTypes.GT_MASK: VolumeSpec(interpolatable=False, voxel_size=(40,4,4))}
         ) +
         Normalize() +
         RandomLocation() +
@@ -64,7 +84,7 @@ def train_until(max_iteration):
         for sample in samples
     )
     
-    """
+    
     artifact_source = (
         Hdf5Source(
             os.path.join(data_dir, 'sample_ABC_padded_20160501.defects.hdf'),
@@ -83,20 +103,35 @@ def train_until(max_iteration):
         ElasticAugment([4,40,40], [0,2,2], [0,math.pi/2.0], subsample=8) +
         SimpleAugment(transpose_only_xy=True)
     )
-    """
+
 
     train_pipeline = (
         data_sources +
         RandomProvider() +
-        GrowBoundary(steps=4, only_xy=True) +
-        AddGtAffinities([[-1,0,0], [0,-1,0], [0,0,-1]]) +
-        BalanceLabels({
-                VolumeTypes.GT_AFFINITIES: VolumeTypes.GT_SCALE
-            },
-            {
-                VolumeTypes.GT_AFFINITIES: VolumeTypes.GT_MASK
-            }) +
+        ElasticAugment([4,40,40], [0,2,2], [0,math.pi/2.0], prob_slip=0.05,prob_shift=0.05,max_misalign=10, subsample=8) +
+        SimpleAugment(transpose_only_xy=True) +
+        GrowBoundary(steps=1, only_xy=True) +
+	SplitAndRenumberSegmentationLabels() + 
+        AddGtAffinities(affinity_neighborhood, 
+			gt_labels_mask=VolumeTypes.GT_MASK) +
+        BalanceLabels(
+	    labels=VolumeTypes.GT_AFFINITIES,
+            scales=VolumeTypes.GT_SCALE,
+            mask=VolumeTypes.GT_AFFINITIES_MASK,
+            slab=(3, -1, -1, -1)
+             ) +
+        IntensityAugment(0.9, 1.1, -0.1, 0.1, z_section_wise=True) +
+        DefectAugment(
+            prob_missing=0.03,
+            prob_low_contrast=0.01,
+            prob_artifact=0.03,
+            artifact_source=artifact_source,
+            contrast_scale=0.5) +
+        IntensityScaleShift(2,-1) +
         ZeroOutConstSections() +
+        PreCache(
+            cache_size=40,
+            num_workers=10) +
         Train(
             './models/bunet',
             optimizer=net_io_names['optimizer'],
@@ -113,17 +148,19 @@ def train_until(max_iteration):
             gradients={
                 net_io_names['affs']: VolumeTypes.LOSS_GRADIENT
             }) +
-        PrintProfilingStats(every=10) +
+	IntensityScaleShift(0.5, 0.5) + 
         Snapshot({
                 VolumeTypes.RAW: 'volumes/raw',
                 VolumeTypes.GT_LABELS: 'volumes/labels/neuron_ids',
                 VolumeTypes.GT_AFFINITIES: 'volumes/labels/affinities',
                 VolumeTypes.PREDICTED_AFFS: 'volumes/labels/pred_affinities',
-                VolumeTypes.SIGMA: 'volumes/labels/sigma'
+                VolumeTypes.SIGMA: 'volumes/labels/sigma',
+		VolumeTypes.LOSS_GRADIENT: 'volumes/loss_gradient'
             },
             every=100,
-            output_filename='/media/nilsec/Backup/snapshots/run_1/batch_{iteration}.hdf',
-            additional_request=snapshot_request)
+            output_filename='./snapshots/run_0/batch_{iteration}.hdf',
+            additional_request=snapshot_request) + 
+	PrintProfilingStats(every=10)
     )
 
     print("Starting training...")
