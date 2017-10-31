@@ -31,12 +31,6 @@ def stochastic_loss_layer(logits_with_noise,
     two_logits = tf.cast(two_logits, tf.float64)
     plus_minus = tf.cast(plus_minus, tf.float64)
    
-    """ 
-    exp_one = tf.add(tf.exp(tf.multiply(plus_minus, two_logits), name="exp_logits"), 
-                     1.0, name="exp_one_add")
-    
-    log_exp_one = tf.log(exp_one)
-    """
     log_exp_one = tf.log1p(tf.exp(tf.multiply(plus_minus, two_logits)))
     weighted_log_exp_one = tf.multiply(log_exp_one, loss_weights)
     loss = tf.divide(tf.reduce_sum(weighted_log_exp_one), float(n_samples))
