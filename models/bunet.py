@@ -239,12 +239,12 @@ def bunet(fmaps_in,
     return f_out
 
 
-def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior):
+def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior, num_fmaps):
     # We apply dropout here as well, does it make sense?
 
     logits = conv_drop_pass(f_out,
                             kernel_size=1,
-                            num_fmaps=6, 
+                            num_fmaps=2*num_fmaps, 
                             num_repetitions=1,
                             drop_rate=drop_rate,
                             kernel_prior=kernel_prior,
@@ -254,10 +254,9 @@ def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior):
     return logits
 
 
-def gaussian_noise_layer(logits, n_samples):
-    print(logits.get_shape().as_list())
-    pred = logits[:,0:3,:,:,:]
-    sigma = logits[:,3:6,:,:,:]
+def gaussian_noise_layer(logits, n_samples, num_fmaps):
+    pred = logits[:,0:num_fmaps,:,:,:]
+    sigma = logits[:,num_fmaps:,:,:,:]
     
     shape_pred = pred.get_shape().as_list()
 
