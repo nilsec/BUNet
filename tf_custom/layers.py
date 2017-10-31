@@ -28,7 +28,7 @@ def mc_dropout(inputs,
                rate=0.5,
                noise_shape=None,
                seed=None,
-               training=False,
+               training=True,
                name=None):
 
     layer = MCDropout(rate, noise_shape=noise_shape, seed=seed, name=name)
