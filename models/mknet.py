@@ -12,7 +12,7 @@ def make(x_dim=268,
          beta2=0.999,
          epsilon=1e-8,
          num_fmaps=12,
-         fmap_inc_factor=2, 
+         fmap_inc_factor=6, 
          downsample_factors=([1,3,3],[1,3,3],[1,3,3]), 
          drop_rate=0.1,
          kernel_prior=None):
@@ -42,6 +42,7 @@ def make(x_dim=268,
     # the shape will be (bs, num_fmaps=12, z,y,x)
 
     f_out_shape_batched = f_out_batched.get_shape().as_list()
+    print f_out_shape_batched
     f_out_shape = f_out_shape_batched[1:] # strip batch dim
     f_out_shape[0] = num_fmaps # Set f_maps to output feature maps (3 in case of x,y,z affs) 
 
