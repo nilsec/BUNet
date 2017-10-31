@@ -5,8 +5,8 @@ import os
 import json
 import numpy as np
 
-data_dir = '/media/nilsec/Backup/cremi/20170312_mala_v2'
-sample = 'sample_C.augmented.0'
+data_dir = '/media/nilsec/m3/cremi/20170312_mala_v2'
+sample = 'sample_A.augmented.0'
 
 def predict(checkpoint_file, net_io_file, output_dir):
     
@@ -79,8 +79,9 @@ if __name__ == "__main__":
     #output_dir = sys.argv[3]
     checkpoint_file = "./models/bunet_checkpoint_700000"
     net_io_file = "./models/net_io_names.json"
-    for n in range(30):
-        output_dir = "/media/nilsec/Backup/predictions_mc_2/700000_{}".format(n)
+    output_dir = "/media/nilsec/m3/predictions_mc_5/700000_{}"
+    for n in range(7, 50):
+        print("Predict {}/{}".format(n, 50))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        predict(checkpoint_file, net_io_file, output_dir)
+        predict(checkpoint_file, net_io_file, output_dir.format(n))
