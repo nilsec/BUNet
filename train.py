@@ -5,6 +5,7 @@ from gunpowder.tensorflow import *
 import os
 import math
 import json
+from __future__ import print_function
 
 data_dir = '/groups/saalfeld/home/funkej/workspace/projects/caffe/run/cremi_gunpowder/01_data'
 samples = ['sample_A_padded_20160501.aligned.filled.cropped',
@@ -31,9 +32,10 @@ affinity_neighborhood = np.array([
     [0, 0, -27]
 ])
 
-def train_until(max_iteration):
+def train_until(max_iteration, run):
+   print("Train run {} until {}...".format(max_iteration, run))
 
-    with open('./models/net_io_names.json', 'r') as f:
+    with open('./models/run_{}/net_io_names.json'.format(run), 'r') as f:
         net_io_names = json.load(f)
 
     register_volume_type('RAW')
@@ -157,7 +159,7 @@ def train_until(max_iteration):
                 VolumeTypes.SIGMA: 'volumes/labels/sigma',
             },
             every=1000,
-            output_filename='batch_{iteration}.hdf',
+            output_filename='run_{}/batch_{iteration}.hdf'.format(run),
             additional_request=snapshot_request) + 
 	PrintProfilingStats(every=10)
     )
@@ -171,4 +173,5 @@ def train_until(max_iteration):
 if __name__ == "__main__":
     set_verbose(False)
     iteration = int(sys.argv[1])
-    train_until(iteration)
+    run = int(sys.argv[2])
+    train_until(iteration, run)
