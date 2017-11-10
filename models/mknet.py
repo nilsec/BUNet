@@ -15,6 +15,7 @@ def make(x_dim=268,
          fmap_inc_factor=6, 
          downsample_factors=([1,3,3],[1,3,3],[1,3,3]), 
          drop_rate=0.1,
+	 pre_sigmoid_drop_rate=0.0,
          kernel_prior=None):
 
     raw = tf.placeholder(tf.float32, shape=(z_dim, y_dim, x_dim))
@@ -30,7 +31,7 @@ def make(x_dim=268,
                           activation='relu')
 
     logits = pre_sigmoid_split_conv_layer(f_out=f_out_batched,
-                                          drop_rate=drop_rate,
+                                          drop_rate=pre_sigmoid_drop_rate,
                                           kernel_prior=kernel_prior,
 					  num_fmaps=num_fmaps)
 
