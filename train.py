@@ -56,12 +56,12 @@ def train_until(max_iteration):
     request.add(VolumeTypes.GT_MASK, output_size, voxel_size=(40,4,4))
     request.add(VolumeTypes.GT_SCALE, output_size, voxel_size=(40,4,4))
     request.add(VolumeTypes.GT_AFFINITIES, output_size, voxel_size=(40,4,4))
-    request.add(VolumeTypes.GT_AFFINITIES_SCALE, output_size, voxel_size=(40,4,4))
+    request.add(VolumeTypes.GT_AFFINITIES_MASK, output_size, voxel_size=(40,4,4))
 
     snapshot_request = BatchRequest()
     snapshot_request.add(VolumeTypes.RAW, input_size, voxel_size=(40,4,4))
     snapshot_request.add(VolumeTypes.PREDICTED_AFFS, output_size, voxel_size=(40,4,4))
-    snapshot_request.add(VolumeTypes.LOSS_GRADIENT, output_size, voxel_size=(40,4,4))    
+#    snapshot_request.add(VolumeTypes.LOSS_GRADIENT, output_size, voxel_size=(40,4,4))    
     snapshot_request.add(VolumeTypes.GT_LABELS, output_size, voxel_size=(40,4,4))
     snapshot_request.add(VolumeTypes.GT_AFFINITIES, output_size, voxel_size=(40,4,4))
     snapshot_request.add(VolumeTypes.SIGMA, output_size, voxel_size=(40,4,4))
@@ -155,10 +155,9 @@ def train_until(max_iteration):
                 VolumeTypes.GT_AFFINITIES: 'volumes/labels/affinities',
                 VolumeTypes.PREDICTED_AFFS: 'volumes/labels/pred_affinities',
                 VolumeTypes.SIGMA: 'volumes/labels/sigma',
-		VolumeTypes.LOSS_GRADIENT: 'volumes/loss_gradient'
             },
-            every=100,
-            output_filename='./snapshots/run_0/batch_{iteration}.hdf',
+            every=1000,
+            output_filename='batch_{iteration}.hdf',
             additional_request=snapshot_request) + 
 	PrintProfilingStats(every=10)
     )
