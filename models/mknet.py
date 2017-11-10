@@ -1,7 +1,9 @@
 from bunet import bunet, gaussian_noise_layer, pre_sigmoid_split_conv_layer
+import os
 from train_bunet import stochastic_loss_layer
 import tensorflow as tf
 import json
+import inspect
 
 def make(x_dim=268, 
          y_dim=268, 
@@ -14,9 +16,27 @@ def make(x_dim=268,
          num_fmaps=12,
          fmap_inc_factor=6, 
          downsample_factors=([1,3,3],[1,3,3],[1,3,3]), 
-         drop_rate=0.1,
+         drop_rate=0.2,
 	 pre_sigmoid_drop_rate=0.0,
-         kernel_prior=None):
+         kernel_prior=None,
+	 kernel_regularizer=None,
+	 kernel_regularizer_scale=None,
+	 run=2):
+
+    if not os.path.exists("./run_{}".format(run)):
+	os.makedirs("./run_{}".format(run))
+
+    frame = inspect.currentframe()
+    args,_,_,values = inspect.getargvalues(frame)
+    with open('run_{}/net_params.txt'.format(run), 'w') as f:
+        f.write(str([(i, values[i]) for i in args]))
+
+    if kernel_regularizer is not None:
+	if kernel_regularizer == "l2":
+	    if kernel_regularizer_scale is None:
+		raise ValueError("No regularizer scale provided")
+	    else:
+	    	kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=kernel_regularizer_scale)
 
     raw = tf.placeholder(tf.float32, shape=(z_dim, y_dim, x_dim))
     # Make a reshape in format tf expects with batch as one dim:
@@ -28,11 +48,13 @@ def make(x_dim=268,
                           downsample_factors=list(downsample_factors),
                           drop_rate=drop_rate,
                           kernel_prior=kernel_prior,
+			  kernel_regularizer=kernel_regularizer,
                           activation='relu')
 
     logits = pre_sigmoid_split_conv_layer(f_out=f_out_batched,
                                           drop_rate=pre_sigmoid_drop_rate,
                                           kernel_prior=kernel_prior,
+					  kernel_regularizer=kernel_regularizer,
 					  num_fmaps=num_fmaps)
 
     logits_with_noise = gaussian_noise_layer(logits=logits, 
@@ -59,6 +81,10 @@ def make(x_dim=268,
                                  loss_weights,
                                  mc_samples)
 
+    if kernel_regularizer is not None:
+	reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+	loss += tf.reduce_sum(reg_losses)
+
     opt = tf.train.AdamOptimizer(
             learning_rate=learning_rate,
             beta1=beta1,
@@ -67,7 +93,7 @@ def make(x_dim=268,
 
     optimizer = opt.minimize(loss)
 
-    tf.train.export_meta_graph(filename='bunet.meta')
+    tf.train.export_meta_graph(filename='run_{}/bunet.meta'.format(run))
     
     names = {
         'raw': raw.name,
@@ -81,7 +107,7 @@ def make(x_dim=268,
         'sigma': sigma.name
         }
 
-    with open('net_io_names.json', 'w') as f:
+    with open('run_{}/net_io_names.json'.format(run), 'w') as f:
         json.dump(names, f) 
 
 if __name__ == "__main__":
