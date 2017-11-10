@@ -127,6 +127,7 @@ def bunet(fmaps_in,
           downsample_factors,
           drop_rate,
           kernel_prior,
+	  kernel_regularizer=None,
           activation='relu',
           layer=0):
 
@@ -177,6 +178,7 @@ def bunet(fmaps_in,
         num_repetitions=2,
         drop_rate=drop_rate,
         kernel_prior=kernel_prior,
+	kernel_regularizer=kernel_regularizer,
         activation=activation,
         name='unet_layer_%i_left'%layer)
 
@@ -236,6 +238,7 @@ def bunet(fmaps_in,
         num_repetitions=2,
         drop_rate=drop_rate,
         kernel_prior=kernel_prior,
+	kernel_regularizer=kernel_regularizer,
         name='unet_layer_%i_right'%layer)
 
     print(prefix + "f_out: " + str(f_out.shape))
