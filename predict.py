@@ -5,8 +5,8 @@ import os
 import json
 import numpy as np
 
-data_dir = '/media/nilsec/m3/cremi/20170312_mala_v2'
-sample = 'sample_A.augmented.0'
+data_dir = '/groups/saalfeld/home/funkej/workspace/projects/caffe/run/cremi_gunpowder/01_data'
+sample = 'sample_C_padded_20160501.aligned.filled.cropped.62:153'
 
 def predict(checkpoint_file, net_io_file, output_dir):
     
@@ -14,8 +14,8 @@ def predict(checkpoint_file, net_io_file, output_dir):
         net_io_names = json.load(f)
 
     voxel_size = (40,4,4)
-    input_size = Coordinate((21,268,268))*voxel_size
-    output_size = Coordinate((21,56,56))*voxel_size
+    input_size = Coordinate((84,268,268))*voxel_size
+    output_size = Coordinate((56,56,56))*voxel_size
     context = (input_size - output_size)/2
 
     register_volume_type('PRED_AFFINITIES')
@@ -37,6 +37,7 @@ def predict(checkpoint_file, net_io_file, output_dir):
         raw_spec = source.spec[VolumeTypes.RAW]
 
     pipeline = (source + 
+		IntensityScaleShift(2, -1) +
                 ZeroOutConstSections() + 
                 Predict(checkpoint_file,
                         inputs = {net_io_names['raw']: VolumeTypes.RAW,},
@@ -65,7 +66,7 @@ def predict(checkpoint_file, net_io_file, output_dir):
     with build(pipeline):
         raw_spec = source.spec[VolumeTypes.RAW].copy()
         aff_spec = raw_spec.copy()
-        #aff_spec.roi = raw_spec.roi.grow(-context, -context)
+        aff_spec.roi = raw_spec.roi.grow(-context, -context)
         
         whole_request = BatchRequest({VolumeTypes.RAW: raw_spec,
                                       VolumeTypes.PRED_AFFINITIES: aff_spec,
@@ -77,10 +78,10 @@ if __name__ == "__main__":
     #checkpoint_file = sys.argv[1]
     #net_io_file = sys.argv[2]
     #output_dir = sys.argv[3]
-    checkpoint_file = "./models/bunet_checkpoint_700000"
+    checkpoint_file = "./models/bunet_checkpoint_140000"
     net_io_file = "./models/net_io_names.json"
-    output_dir = "/media/nilsec/m3/predictions_mc_5/700000_{}"
-    for n in range(7, 50):
+    output_dir = "./predictions/140000/p_{}"
+    for n in range(50):
         print("Predict {}/{}".format(n, 50))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
