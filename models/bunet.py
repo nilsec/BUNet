@@ -10,6 +10,7 @@ def conv_drop_pass(fmaps_in,
                   num_repetitions,
                   drop_rate,
                   kernel_prior,
+		  kernel_regularizer=None,
                   activation='relu',
                   name='conv_drop_pass'):
 
@@ -47,6 +48,7 @@ def conv_drop_pass(fmaps_in,
             data_format='channels_first',
             activation=activation,
             kernel_initializer=kernel_prior,
+	    kernel_regularizer=kernel_regularizer,
             name=name + '_%i'%i)
         
         fmaps = mc_dropout(
@@ -67,7 +69,7 @@ def downsample(fmaps_in, factors, name='down'):
 
     return fmaps
 
-def upsample(fmaps_in, factors, num_fmaps, drop_rate, kernel_prior, activation='relu', name='up'):
+def upsample(fmaps_in, factors, num_fmaps, drop_rate, kernel_prior, kernel_regularizer=None, activation='relu', name='up'):
 
     activation = getattr(tf.nn, activation)
 
@@ -80,6 +82,7 @@ def upsample(fmaps_in, factors, num_fmaps, drop_rate, kernel_prior, activation='
         data_format='channels_first',
         activation=activation,
         kernel_initializer=kernel_prior,
+	kernel_regularizer=kernel_regularizer,
         name=name)
 
     fmaps = mc_dropout(
@@ -240,7 +243,7 @@ def bunet(fmaps_in,
     return f_out
 
 
-def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior, num_fmaps):
+def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior, num_fmaps, kernel_regularizer=None):
     # We apply dropout here as well, does it make sense?
 
     logits = conv_drop_pass(f_out,
@@ -249,6 +252,7 @@ def pre_sigmoid_split_conv_layer(f_out, drop_rate, kernel_prior, num_fmaps):
                             num_repetitions=1,
                             drop_rate=drop_rate,
                             kernel_prior=kernel_prior,
+			    kernel_regularizer=kernel_regularizer,
                             activation=None,
                             name="split_layer")
 
