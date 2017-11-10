@@ -6,7 +6,7 @@ import json
 def make(x_dim=268, 
          y_dim=268, 
          z_dim=84,
-         mc_samples=50,
+         mc_samples=25,
          learning_rate=0.5e-4,
          beta1=0.95,
          beta2=0.999,
