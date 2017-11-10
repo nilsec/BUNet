@@ -55,7 +55,7 @@ def combine_predictions(base_dir, output_path):
     f.create_dataset("volumes/labels/mean_entropy", data=mean_entropy)
     f.create_dataset("volumes/labels/var_pred_affinities", data=unbiased)
 
-    mean_ale, unbiased_ale, biased_ale = online_variance(predictions, dataset="volume/labels/sigma", reshape=np.shape(mean))    
+    mean_ale, unbiased_ale, biased_ale = online_variance(predictions, dataset="volumes/labels/sigma", reshape=np.shape(mean))    
     f.create_dataset("volumes/labels/mean_aleatoric", data=mean_ale)
     f.create_dataset("volumes/labels/var_aleatoric", data=unbiased_ale)
 
