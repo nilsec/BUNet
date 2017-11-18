@@ -1,4 +1,4 @@
-from bunet import bunet, gaussian_noise_layer, pre_sigmoid_split_conv_layer
+from bunet import bunet, gaussian_noise_layer, pre_sigmoid_split_conv_layer, conv_drop_pass
 import os
 from train_bunet import stochastic_loss_layer
 import tensorflow as tf
@@ -8,7 +8,6 @@ import inspect
 def make(x_dim=268, 
          y_dim=268, 
          z_dim=84,
-         mc_samples=40,
          learning_rate=0.5e-4,
          beta1=0.95,
          beta2=0.999,
@@ -28,7 +27,7 @@ def make(x_dim=268,
 	 up_kernel_regularizer_scale=None,
 	 pre_sigmoid_kernel_regularizer=None,
 	 pre_sigmoid_kernel_regularizer_scale=None,
-	 run=13):
+	 run=14):
 
     if not os.path.exists("./run_{}".format(run)):
 	os.makedirs("./run_{}".format(run))
@@ -77,34 +76,38 @@ def make(x_dim=268,
 			  up_kernel_regularizer=up_kernel_regularizer,
                           activation='relu')
 
-    logits = pre_sigmoid_split_conv_layer(f_out=f_out_batched,
-                                          drop_rate=pre_sigmoid_drop_rate,
-                                          kernel_prior=kernel_prior,
-					  kernel_regularizer=pre_sigmoid_kernel_regularizer,
-					  num_fmaps=num_fmaps)
-
-    logits_with_noise = gaussian_noise_layer(logits=logits, 
-					     n_samples=mc_samples,
-					     num_fmaps=num_fmaps)
-
-    # Note this is the shape before the split layer i.e.
-    # the shape will be (bs, num_fmaps=12, z,y,x)
+    
 
     f_out_shape_batched = f_out_batched.get_shape().as_list()
     f_out_shape = f_out_shape_batched[1:] # strip batch dim
-    f_out_shape[0] = num_fmaps # Set f_maps to output feature maps (3 in case of x,y,z affs) 
+    f_out = tf.reshape(f_out_batched, f_out_shape)
 
-    affs = tf.reshape(tf.sigmoid(logits[:,0:num_fmaps,:,:,:]), f_out_shape)
+    """
+    affs_batched = conv_drop_pass(f_out_batched, 
+				  kernel_size=1,
+				  num_fmaps=num_fmaps,
+			  	  num_repetitions=1,
+			  	  drop_rate=pre_sigmoid_drop_rate,
+			  	  kernel_prior=kernel_prior,
+			  	  kernel_regularizer=pre_sigmoid_kernel_regularizer,
+			  	  activation='sigmoid',
+			  	  name="sigmoid_layer")
+    
 
+    affs = tf.reshape(affs_batched, f_out_shape)
+    """
+    affs = tf.sigmoid(f_out)
     gt_affs = tf.placeholder(tf.float32, shape=f_out_shape)
     loss_weights = tf.placeholder(tf.float32, shape=f_out_shape)
 
-    sigma = logits[:,num_fmaps:,:,:,:]
-
-    loss = stochastic_loss_layer(logits_with_noise,
-                                 gt_affs,
-                                 loss_weights,
-                                 mc_samples)
+    """
+    loss = tf.losses.mean_squared_error(gt_affs,
+					affs,
+					loss_weights)
+    """
+    loss = tf.losses.sigmoid_cross_entropy(gt_affs,
+					    f_out,
+					    loss_weights)
 
     if (conv_kernel_regularizer is not None) or (up_kernel_regularizer is not None) or\
 	(pre_sigmoid_kernel_regularizer is not None):
@@ -129,9 +132,6 @@ def make(x_dim=268,
         'loss_weights': loss_weights.name,
         'loss': loss.name,
         'optimizer': optimizer.name,
-        'logits': logits.name,
-        'logits_with_noise': logits_with_noise.name,
-        'sigma': sigma.name
         }
 
     with open('run_{}/net_io_names.json'.format(run), 'w') as f:

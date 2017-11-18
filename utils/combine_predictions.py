@@ -22,9 +22,13 @@ def online_variance(prediction_paths, dataset="volumes/labels/pred_affinities", 
             	x = np.array(np.reshape(f[dataset].value, reshape), dtype=np.float32)
 	    else:
 	        x = np.array(f[dataset].value, dtype=np.float32)
- 
+		 
 	except KeyError:
 	    print "No dset: ", path
+
+	if dataset.endswith("sigma"):
+	    x = x*x
+	
         delta = x - mean
         mean += delta/n
         delta2 = x - mean
@@ -33,12 +37,15 @@ def online_variance(prediction_paths, dataset="volumes/labels/pred_affinities", 
     if n<2:
         return np.nan
     else:
-        return mean, M2/(n-1), M2/n
+	if dataset.endswith("sigma"):
+	    return np.sqrt(mean), M2/(n-1), M2/n
+	else:
+            return mean, M2/(n-1), M2/n
 
-def combine_predictions(base_dir, output_path):
+def combine_predictions(base_dir, output_path, dset, n_max, pure=False):
     dirs = [os.path.join(base_dir, top_dir) for top_dir in os.listdir(base_dir)]
     predictions = [os.path.join(base_dir + "/p_{}".format(n), 
-		   "sample_C_padded_20160501.aligned.filled.cropped.62:153.hdf") for n in range(30)]
+		   dset) for n in range(n_max)]
 
     f = h5py.File(output_path, "w")
     
@@ -55,19 +62,24 @@ def combine_predictions(base_dir, output_path):
     f.create_dataset("volumes/labels/mean_entropy", data=mean_entropy)
     f.create_dataset("volumes/labels/var_pred_affinities", data=unbiased)
 
-    mean_ale, unbiased_ale, biased_ale = online_variance(predictions, dataset="volumes/labels/sigma", reshape=np.shape(mean))    
-    f.create_dataset("volumes/labels/mean_aleatoric", data=mean_ale)
-    f.create_dataset("volumes/labels/var_aleatoric", data=unbiased_ale)
+    if not pure:
+    	mean_ale, unbiased_ale, biased_ale = online_variance(predictions, dataset="volumes/labels/sigma", reshape=np.shape(mean))    
+    	f.create_dataset("volumes/labels/mean_aleatoric", data=mean_ale)
+    	f.create_dataset("volumes/labels/var_aleatoric", data=unbiased_ale)
 
     f_0 = h5py.File(predictions[0], "r")
     f.create_dataset("volumes/raw", data=f_0["volumes/raw"])
     f.create_dataset("volumes/labels/0_pred_affinities", data=f_0["volumes/labels/pred_affinities"])
-
-    data_dir = '/groups/saalfeld/home/funkej/workspace/projects/caffe/run/cremi_gunpowder/01_data'
-    sample = 'sample_C_padded_20160501.aligned.filled.cropped.62:153'
-    f_sample = h5py.File(os.path.join(data_dir, sample), "r")
-    f.create_dataset("volumes/labels/gt_affinities", data=f_sample["volumes/labels/affinities"])
+    f.close()
 
 if __name__ == "__main__":
-    combine_predictions("./predictions/140000", "/groups/saalfeld/home/funkej/nils/combined_predictions/"+\
-			"sample_C_padded_20160501.aligned.filled.cropped.r0.140000.c30.62:153.hdf")
+    for run in [7,8,10,11]:
+	pure=False
+	if run == 11:
+	    pure=True
+    	combine_predictions(base_dir ="./predictions/run_{}/96000".format(run), 
+			    output_path="./combined_predictions/"+\
+			    "sample_C_padded_20160501.aligned.filled.cropped.r{}.96000.c50.62:153.0:268.0:268.hdf".format(run),
+			    dset="sample_C_padded_20160501.aligned.filled.cropped.62:153.0:268.0:268.hdf",
+			    n_max=50,
+			    pure=pure)

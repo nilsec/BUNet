@@ -11,6 +11,7 @@ def conv_drop_pass(fmaps_in,
                   drop_rate,
                   kernel_prior,
 		  kernel_regularizer=None,
+		  prefix="",
                   activation='relu',
                   name='conv_drop_pass'):
 
@@ -55,6 +56,11 @@ def conv_drop_pass(fmaps_in,
             inputs=fmaps,
             rate=drop_rate)
 
+    print(prefix + "# -> Set conv dr = " + str(drop_rate))
+    if kernel_regularizer is not None:
+    	print(prefix + "# -> Use kr")
+ 
+
     return fmaps
 
 def downsample(fmaps_in, factors, name='down'):
@@ -69,7 +75,7 @@ def downsample(fmaps_in, factors, name='down'):
 
     return fmaps
 
-def upsample(fmaps_in, factors, num_fmaps, drop_rate, kernel_prior, kernel_regularizer=None, activation='relu', name='up'):
+def upsample(fmaps_in, factors, num_fmaps, drop_rate, kernel_prior, kernel_regularizer=None, prefix="", activation='relu', name='up'):
 
     activation = getattr(tf.nn, activation)
 
@@ -88,6 +94,10 @@ def upsample(fmaps_in, factors, num_fmaps, drop_rate, kernel_prior, kernel_regul
     fmaps = mc_dropout(
         inputs=fmaps,
         rate=drop_rate)
+
+    print(prefix + "# -> Set up dr = " + str(drop_rate))
+    if kernel_regularizer is not None:
+    	print(prefix + "# -> Use kr")
 
     return fmaps
 
@@ -125,9 +135,13 @@ def bunet(fmaps_in,
           num_fmaps,
           fmap_inc_factor,
           downsample_factors,
-          drop_rate,
+          conv_drop_rate,
+	  up_drop_rate,
           kernel_prior,
-	  kernel_regularizer=None,
+	  final_drop_rate=None,
+	  bottom_drop_rate=None,
+	  conv_kernel_regularizer=None,
+	  up_kernel_regularizer=None,
           activation='relu',
           layer=0):
 
@@ -170,15 +184,22 @@ def bunet(fmaps_in,
     print(prefix + "Creating U-Net layer %i"%layer)
     print(prefix + "f_in: " + str(fmaps_in.shape))
 
+    tmp_bottom_drop_rate = conv_drop_rate
+    if layer == len(downsample_factors):
+	if bottom_drop_rate is not None:
+	    print(prefix + "# -> Overwrite bottom drop rate")
+	    tmp_bottom_drop_rate = bottom_drop_rate
+
     # convolve
     f_left = conv_drop_pass(
         fmaps_in,
         kernel_size=3,
         num_fmaps=num_fmaps,
         num_repetitions=2,
-        drop_rate=drop_rate,
+        drop_rate=tmp_bottom_drop_rate,
         kernel_prior=kernel_prior,
-	kernel_regularizer=kernel_regularizer,
+	kernel_regularizer=conv_kernel_regularizer,
+	prefix=prefix,
         activation=activation,
         name='unet_layer_%i_left'%layer)
 
@@ -201,8 +222,13 @@ def bunet(fmaps_in,
         num_fmaps=num_fmaps*fmap_inc_factor,
         fmap_inc_factor=fmap_inc_factor,
         downsample_factors=downsample_factors,
-        drop_rate=drop_rate,
+        conv_drop_rate=conv_drop_rate,
+	up_drop_rate=up_drop_rate,
+	bottom_drop_rate=bottom_drop_rate,
+	final_drop_rate=final_drop_rate,
         kernel_prior=kernel_prior,
+	conv_kernel_regularizer=conv_kernel_regularizer,
+	up_kernel_regularizer=up_kernel_regularizer,
         activation=activation,
         layer=layer+1)
 
@@ -213,8 +239,10 @@ def bunet(fmaps_in,
         g_out,
         downsample_factors[layer],
         num_fmaps,
-        drop_rate=drop_rate,
+        drop_rate=up_drop_rate,
         kernel_prior=kernel_prior,
+	kernel_regularizer=up_kernel_regularizer,
+	prefix=prefix,
         activation=activation,
         name='unet_up_%i_to_%i'%(layer + 1, layer))
 
@@ -230,15 +258,21 @@ def bunet(fmaps_in,
 
     print(prefix + "f_right: " + str(f_right.shape))
 
+    tmp_final_drop_rate = conv_drop_rate
+    if layer == 0:
+	if final_drop_rate is not None:
+	    tmp_final_drop_rate = final_drop_rate
+
     # convolve
     f_out = conv_drop_pass(
         f_right,
         kernel_size=3,
         num_fmaps=num_fmaps,
         num_repetitions=2,
-        drop_rate=drop_rate,
+        drop_rate=tmp_final_drop_rate,
         kernel_prior=kernel_prior,
-	kernel_regularizer=kernel_regularizer,
+	kernel_regularizer=conv_kernel_regularizer,
+	prefix=prefix,
         name='unet_layer_%i_right'%layer)
 
     print(prefix + "f_out: " + str(f_out.shape))
