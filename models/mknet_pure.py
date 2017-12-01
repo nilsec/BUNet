@@ -16,10 +16,13 @@ def make(x_dim=268,
          fmap_inc_factor=5, 
          downsample_factors=([1,3,3],[1,3,3],[1,3,3]), 
          conv_drop_rate=0.0,
+	 drop_location="pre",
 	 up_drop_rate=0.0,
 	 pre_sigmoid_drop_rate=0.0,
-	 bottom_drop_rate=0.5,
+	 bottom_drop_rate=None,
 	 final_drop_rate=0.0,
+	 left_drop_rate=0.0,
+	 first_drop_rate=0.0,
          kernel_prior=None,
 	 conv_kernel_regularizer=None,
 	 conv_kernel_regularizer_scale=None,
@@ -27,7 +30,7 @@ def make(x_dim=268,
 	 up_kernel_regularizer_scale=None,
 	 pre_sigmoid_kernel_regularizer=None,
 	 pre_sigmoid_kernel_regularizer_scale=None,
-	 run=14):
+	 run="24"):
 
     if not os.path.exists("./run_{}".format(run)):
 	os.makedirs("./run_{}".format(run))
@@ -68,15 +71,29 @@ def make(x_dim=268,
                           fmap_inc_factor=fmap_inc_factor,
                           downsample_factors=list(downsample_factors),
                           conv_drop_rate=conv_drop_rate,
+			  drop_location=drop_location,
 			  up_drop_rate=up_drop_rate,
 			  bottom_drop_rate=bottom_drop_rate,
+			  left_drop_rate=left_drop_rate,
 			  final_drop_rate=final_drop_rate,
+			  first_drop_rate=first_drop_rate,
                           kernel_prior=kernel_prior,
 			  conv_kernel_regularizer=conv_kernel_regularizer,
 			  up_kernel_regularizer=up_kernel_regularizer,
                           activation='relu')
 
-    
+
+    # Scale and shift because of relu:
+    f_out_batched = conv_drop_pass(f_out_batched, 
+				  kernel_size=1,
+				  num_fmaps=num_fmaps,
+			  	  num_repetitions=1,
+			  	  drop_rate=0.0,
+			  	  kernel_prior=None,
+			  	  kernel_regularizer=None,
+			  	  activation=None,
+			  	  name="scale_shift_layer")
+ 
 
     f_out_shape_batched = f_out_batched.get_shape().as_list()
     f_out_shape = f_out_shape_batched[1:] # strip batch dim
@@ -92,11 +109,12 @@ def make(x_dim=268,
 			  	  kernel_regularizer=pre_sigmoid_kernel_regularizer,
 			  	  activation='sigmoid',
 			  	  name="sigmoid_layer")
-    
-
-    affs = tf.reshape(affs_batched, f_out_shape)
     """
+
+
+    #affs = tf.reshape(affs_batched, f_out_shape)
     affs = tf.sigmoid(f_out)
+    
     gt_affs = tf.placeholder(tf.float32, shape=f_out_shape)
     loss_weights = tf.placeholder(tf.float32, shape=f_out_shape)
 
@@ -105,6 +123,7 @@ def make(x_dim=268,
 					affs,
 					loss_weights)
     """
+
     loss = tf.losses.sigmoid_cross_entropy(gt_affs,
 					    f_out,
 					    loss_weights)

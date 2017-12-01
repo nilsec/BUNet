@@ -4,12 +4,21 @@ from layers import mc_dropout
 import os
 import numpy as np
 
+def feature_drop(fmaps_in, drop_rate):
+	"""
+	Assumes input tensor of order (batch_size, channels, depth, height, width).
+	"""
+	fmap_shape = f_maps_in.get_shape().as_list()
+	
+	
+
 def conv_drop_pass(fmaps_in,
                   kernel_size,
                   num_fmaps,
                   num_repetitions,
                   drop_rate,
                   kernel_prior,
+		  drop_location="middle",
 		  kernel_regularizer=None,
 		  prefix="",
                   activation='relu',
@@ -40,6 +49,11 @@ def conv_drop_pass(fmaps_in,
     if activation is not None:
         activation = getattr(tf.nn, activation)
 
+    if drop_location == "pre":
+	fmaps = mc_dropout(
+            inputs=fmaps,
+            rate=drop_rate)
+
     for i in range(num_repetitions):
         fmaps = tf.layers.conv3d(
             inputs=fmaps,
@@ -51,15 +65,21 @@ def conv_drop_pass(fmaps_in,
             kernel_initializer=kernel_prior,
 	    kernel_regularizer=kernel_regularizer,
             name=name + '_%i'%i)
-        
-        fmaps = mc_dropout(
-            inputs=fmaps,
-            rate=drop_rate)
+	
+	if drop_location == "middle":
+            fmaps = mc_dropout(
+            		inputs=fmaps,
+            		rate=drop_rate)
 
+    if drop_location == "post":
+	fmaps = mc_dropout(
+            		inputs=fmaps,
+            		rate=drop_rate)
+	
     print(prefix + "# -> Set conv dr = " + str(drop_rate))
+    print(prefix + "# -> Set drop loc = " + drop_location)
     if kernel_regularizer is not None:
     	print(prefix + "# -> Use kr")
- 
 
     return fmaps
 
@@ -138,8 +158,11 @@ def bunet(fmaps_in,
           conv_drop_rate,
 	  up_drop_rate,
           kernel_prior,
+	  drop_location="middle",
+	  first_drop_rate=None,
 	  final_drop_rate=None,
 	  bottom_drop_rate=None,
+	  left_drop_rate=None,
 	  conv_kernel_regularizer=None,
 	  up_kernel_regularizer=None,
           activation='relu',
@@ -184,11 +207,18 @@ def bunet(fmaps_in,
     print(prefix + "Creating U-Net layer %i"%layer)
     print(prefix + "f_in: " + str(fmaps_in.shape))
 
-    tmp_bottom_drop_rate = conv_drop_rate
+    tmp_drop_rate = conv_drop_rate
+    if left_drop_rate is not None:
+	print(prefix + "# -> Overwrite left drop rate")
+	tmp_drop_rate = left_drop_rate
     if layer == len(downsample_factors):
 	if bottom_drop_rate is not None:
 	    print(prefix + "# -> Overwrite bottom drop rate")
-	    tmp_bottom_drop_rate = bottom_drop_rate
+	    tmp_drop_rate = bottom_drop_rate
+    if layer == 0:
+	if first_drop_rate is not None:
+	    print(prefix + "# -> Overwrite first drop rate")
+	    tmp_drop_rate = first_drop_rate
 
     # convolve
     f_left = conv_drop_pass(
@@ -196,7 +226,8 @@ def bunet(fmaps_in,
         kernel_size=3,
         num_fmaps=num_fmaps,
         num_repetitions=2,
-        drop_rate=tmp_bottom_drop_rate,
+        drop_rate=tmp_drop_rate,
+	drop_location=drop_location,
         kernel_prior=kernel_prior,
 	kernel_regularizer=conv_kernel_regularizer,
 	prefix=prefix,
@@ -223,8 +254,11 @@ def bunet(fmaps_in,
         fmap_inc_factor=fmap_inc_factor,
         downsample_factors=downsample_factors,
         conv_drop_rate=conv_drop_rate,
+	drop_location=drop_location,
 	up_drop_rate=up_drop_rate,
 	bottom_drop_rate=bottom_drop_rate,
+	left_drop_rate=left_drop_rate,
+	first_drop_rate=first_drop_rate,
 	final_drop_rate=final_drop_rate,
         kernel_prior=kernel_prior,
 	conv_kernel_regularizer=conv_kernel_regularizer,
@@ -270,6 +304,7 @@ def bunet(fmaps_in,
         num_fmaps=num_fmaps,
         num_repetitions=2,
         drop_rate=tmp_final_drop_rate,
+	drop_location=drop_location,
         kernel_prior=kernel_prior,
 	kernel_regularizer=conv_kernel_regularizer,
 	prefix=prefix,

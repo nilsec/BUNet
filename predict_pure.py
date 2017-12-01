@@ -79,11 +79,12 @@ if __name__ == "__main__":
     #checkpoint_file = sys.argv[1]
     #net_io_file = sys.argv[2]
     #output_dir = sys.argv[3]
-    checkpoint_file = "./models/run_11/bunet_checkpoint_96000"
-    net_io_file = "./models/run_11/net_io_names.json"
-    output_dir = "./predictions/run_11/96000_large/p_{}"
-    for n in range(10):
-        print("Predict {}/{}".format(n, 10))
+    checkpoint_file = "./models/run_14/bunet_checkpoint_98000"
+    net_io_file = "./models/run_14/net_io_names.json"
+    output_dir = "./predictions/run_14/98000/p_{}"
+    N = 2
+    for n in range(N):
+        print("Predict {}/{}".format(n, N))
         if not os.path.exists(output_dir.format(n)):
             os.makedirs(output_dir.format(n))
         predict(checkpoint_file, net_io_file, output_dir.format(n))

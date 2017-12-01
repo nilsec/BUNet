@@ -72,14 +72,12 @@ def combine_predictions(base_dir, output_path, dset, n_max, pure=False):
     f.create_dataset("volumes/labels/0_pred_affinities", data=f_0["volumes/labels/pred_affinities"])
     f.close()
 
-if __name__ == "__main__":
-    for run in [7,8,10,11]:
-	pure=False
-	if run == 11:
-	    pure=True
-    	combine_predictions(base_dir ="./predictions/run_{}/96000".format(run), 
-			    output_path="./combined_predictions/"+\
-			    "sample_C_padded_20160501.aligned.filled.cropped.r{}.96000.c50.62:153.0:268.0:268.hdf".format(run),
-			    dset="sample_C_padded_20160501.aligned.filled.cropped.62:153.0:268.0:268.hdf",
-			    n_max=50,
+if __name__ == "__main__":	
+    pure=True
+    run=22
+    combine_predictions(base_dir ="../predictions/run_{}/100000".format(run), 
+			    output_path="../combined_predictions/"+\
+			    "sample_C_padded_20160501.aligned.filled.cropped.62:153.r{}.100000.large.hdf".format(run),
+			    dset="sample_C_padded_20160501.aligned.filled.cropped.62:153.hdf",
+			    n_max=10,
 			    pure=pure)
